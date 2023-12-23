@@ -27,12 +27,12 @@ hyperparameters = Dict(
     "tokenizer" => "sentences+bpe",
     "nlabels" => 1,
     "pdrop" => 0.1,
-    "dim_embedding" => 8,
+    "dim_embedding" => 32,
     "max_sentence_length" => 30,
 )
 nlabels = hyperparameters["nlabels"]
 max_sentence_length = hyperparameters["max_sentence_length"]
-num_epochs = 2
+num_epochs = 10
 
 ## Data
 filepath = joinpath(data_dir, filename)
