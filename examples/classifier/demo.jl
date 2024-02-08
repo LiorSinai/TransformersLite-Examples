@@ -14,12 +14,12 @@ using Unicode
 
 #using TokenizersLite # Uncomment if using bpe or affixer tokenizers below
 using TransformersLite
-include("../common/vocab.jl")
-include("../common/training.jl")
+include("../../common/vocab.jl")
+include("../../common/training.jl")
 
 ## Config
 fingerprint = "724e94f4b0c6c405ce7e476a6c5ef4f87db30799ad49f765094cf9770e0f7609"
-data_dir = normpath(joinpath(@__DIR__, "..", "datasets\\amazon_reviews_multi\\en\\1.0.0", fingerprint))
+data_dir = normpath(joinpath(@__DIR__, "..", "..", "datasets\\amazon_reviews_multi\\en\\1.0.0", fingerprint))
 filename = "amazon_reviews_multi-train.arrow"
 to_device = gpu # gpu or cpu
 target_column = :stars
@@ -135,7 +135,7 @@ println("Calculating initial metrics")
 @printf "val_loss=%.4f \n" metrics.loss
 println("")
 
-output_dir = normpath(joinpath(@__DIR__, "..", "outputs", Dates.format(now(), "yyyymmdd_HHMM")))
+output_dir = normpath(joinpath(@__DIR__, "outputs", Dates.format(now(), "yyyymmdd_HHMM")))
 mkdir(output_dir)
 output_path = joinpath(output_dir, "model.bson")
 history_path = joinpath(output_dir, "history.json")
