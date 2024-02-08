@@ -42,16 +42,16 @@ Optional packages:
 Download the [amazon_reviews_multi](https://huggingface.co/datasets/amazon_reviews_multi) dataset via the HuggingFace API:
 
 ```bash
-python examples/download_dataset.py
+python data/AmazonReviews/download_dataset.py
 ```
 
 Create a transformer and train it on the data:
 ```bash
 mkdir outputs
-julia --project="." --threads auto examples/demo.jl
+julia --project="." --threads auto examples/classifier/demo.jl
 ```
 
-Run the evalation notebooks (requires IJulia):
+Run the evaluation notebooks (requires IJulia):
 ```
 jupyter notebook
 ```
