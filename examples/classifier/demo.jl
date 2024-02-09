@@ -20,6 +20,7 @@ include("../../common/training.jl")
 ## Config
 fingerprint = "724e94f4b0c6c405ce7e476a6c5ef4f87db30799ad49f765094cf9770e0f7609"
 data_dir = normpath(joinpath(@__DIR__, "..", "..", "datasets\\amazon_reviews_multi\\en\\1.0.0", fingerprint))
+vocab_directory = "vocab"
 filename = "amazon_reviews_multi-train.arrow"
 to_device = gpu # gpu or cpu
 target_column = :stars
@@ -45,16 +46,14 @@ println("")
 ## Tokenizers
 
 if hyperparameters["tokenizer"] == "bpe"
-    output_dir = joinpath("vocab", "bpe")
-    path_rules = joinpath(output_dir, "amazon_reviews_train_en_rules.txt")
-    path_vocab = joinpath(output_dir, "amazon_reviews_train_en_vocab.txt")
+    path_rules = joinpath(vocab_directory, "bpe", "amazon_reviews_train_en_rules.txt")
+    path_vocab = joinpath(vocab_directory, "bpe", "amazon_reviews_train_en_vocab.txt")
     tokenizer = load_bpe(path_rules, startsym="⋅")
 elseif hyperparameters["tokenizer"] == "affixes"
-    output_dir = joinpath("vocab","affixes")
-    path_vocab = joinpath(output_dir, "amazon_reviews_train_en_vocab.txt")
+    path_vocab = joinpath(vocab_directory, "affixes", "amazon_reviews_train_en_vocab.txt")
     tokenizer = load_affix_tokenizer(path_vocab)
 elseif hyperparameters["tokenizer"] == "none"
-    path_vocab = joinpath("vocab", "amazon_reviews_train_en.txt")
+    path_vocab = joinpath(vocab_directory, "amazon_reviews_train_en.txt")
     tokenizer = identity
 end
 

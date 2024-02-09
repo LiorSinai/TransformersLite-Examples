@@ -43,9 +43,9 @@ println("")
 ## Tokenizers
 sentence_splitter = RuleBasedSentenceSplitter()
 
-output_dir = joinpath(@__DIR__, "..", "vocab\\bpe")
-path_rules = joinpath(output_dir, "amazon_reviews_train_en_rules.txt")
-path_vocab = joinpath(output_dir, "amazon_reviews_train_en_vocab.txt")
+vocab_dir = joinpath(@__DIR__, "..", "vocab", "bpe")
+path_rules = joinpath(vocab_dir, "amazon_reviews_train_en_rules.txt")
+path_vocab = joinpath(vocab_dir, "amazon_reviews_train_en_vocab.txt")
 tokenizer = load_bpe(path_rules, startsym="⋅")
 
 vocab = load_vocab(path_vocab)
@@ -132,11 +132,11 @@ println("Calculating initial metrics")
 @printf "val_loss=%.4f \n" metrics.loss
 println("")
 
-output_dir = normpath(joinpath(@__DIR__, "outputs", Dates.format(now(), "yyyymmdd_HHMM")))
-mkdir(output_dir)
-output_path = joinpath(output_dir, "model.bson")
-history_path = joinpath(output_dir, "history.json")
-hyperparameter_path = joinpath(output_dir, "hyperparameters.json")
+vocab_dir = normpath(joinpath(@__DIR__, "outputs", Dates.format(now(), "yyyymmdd_HHMM")))
+mkdir(vocab_dir)
+output_path = joinpath(vocab_dir, "model.bson")
+history_path = joinpath(vocab_dir, "history.json")
+hyperparameter_path = joinpath(vocab_dir, "hyperparameters.json")
 
 open(hyperparameter_path, "w") do f
     JSON.print(f, hyperparameters)
