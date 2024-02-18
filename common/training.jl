@@ -15,7 +15,7 @@ To automatically batch data, use `Flux.DataLoader`.
 function batched_metrics(model, data, funcs...)
     results = zeros(Float32, length(funcs))
     num_observations = 0
-    for (x, y) in data
+    @showprogress desc="batch metrics..." for (x, y) in data
         y_model = model(x)
         values = map(f->f(y_model, y), funcs)
         batch_size = count_observations(x) 
@@ -53,13 +53,7 @@ function split_validation(rng::AbstractRNG, data::AbstractArray, labels::Abstrac
 end
 
 function train!(loss, model, train_data, opt_state, val_data; num_epochs=10)
-    history = Dict(
-        "train_acc" => Float64[], 
-        "train_loss" => Float64[], 
-        "val_acc" => Float64[], 
-        "val_loss" => Float64[],
-        "mean_batch_loss" => Float64[],
-        )
+    history = Dict("mean_batch_loss" => Float64[])
     for epoch in 1:num_epochs
         print(stderr, "")
         progress = Progress(length(train_data); desc="epoch $epoch/$num_epochs")
@@ -77,24 +71,23 @@ function train!(loss, model, train_data, opt_state, val_data; num_epochs=10)
         end
         mean_batch_loss = total_loss / length(train_data)
         push!(history["mean_batch_loss"], mean_batch_loss)
-        update_history!(history, model, loss, train_data, val_data)
+        update_history!(history, model, train_data, "train_", loss, accuracy)
+        update_history!(history, model, val_data, "val_", loss, accuracy)
     end
     println("")
     history
 end
 
-function update_history!(history::Dict, model, loss, train_data, val_data)
-    train_metrics = batched_metrics(model, train_data, loss, accuracy)
-    val_metrics = batched_metrics(model, val_data, loss, accuracy)
-
-    push!(history["train_acc"], train_metrics.accuracy)
-    push!(history["train_loss"], train_metrics.loss)
-    push!(history["val_acc"], val_metrics.accuracy)
-    push!(history["val_loss"], val_metrics.loss)
-
-    @printf "train_acc=%.4f%%; " train_metrics.accuracy * 100
-    @printf "train_loss=%.4f; " train_metrics.loss
-    @printf "val_acc=%.4f%%; " val_metrics.accuracy * 100
-    @printf "val_loss=%.4f ;" val_metrics.loss
+function update_history!(history::Dict, model, data, prefix::String, funcs...)
+    metrics = batched_metrics(model, data, funcs...)
+    for func in keys(metrics)
+        metric_name = prefix * String(func)
+        if !(haskey(history, metric_name))
+            history[metric_name] = [metrics[func]]
+        else
+            push!(history[metric_name], metrics[func])
+        end
+        @printf "%s=%.4f; " metric_name metrics[func]
+    end
     println("")
 end
