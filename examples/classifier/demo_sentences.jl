@@ -1,12 +1,13 @@
-using DataFrames
-using Arrow
-using Printf
-using BSON, JSON
 using Flux
 using Flux: DataLoader
-using Unicode
+using CUDA, cuDNN
+using Arrow
+using BSON, JSON
+using DataFrames
 using Dates
-using StatsBase: mean
+using Printf
+using Random
+using StatsBase
 
 using TokenizersLite
 using TransformersLite
@@ -16,23 +17,27 @@ include("../../common/SentenceClassifier.jl")
 
 ## Config
 fingerprint = "724e94f4b0c6c405ce7e476a6c5ef4f87db30799ad49f765094cf9770e0f7609"
-data_dir = normpath(joinpath(@__DIR__, "..", "datasets\\amazon_reviews_multi\\en\\1.0.0", fingerprint))
+data_dir = normpath(joinpath(@__DIR__, "..", "..", "datasets\\amazon_reviews_multi\\en\\1.0.0", fingerprint))
+output_dir = normpath(joinpath(@__DIR__, "outputs", Dates.format(now(), "yyyymmdd_HHMM")))
+vocab_directory = joinpath(@__DIR__, "vocab/bpe")
 filename = "amazon_reviews_multi-train.arrow"
 to_device = gpu # gpu or cpu
-target_column = :stars
 document_column = :review_body
+target_column = :stars
 
 hyperparameters = Dict(
     "seed" => 2718,
     "tokenizer" => "sentences+bpe",
     "nlabels" => 1,
     "pdrop" => 0.1,
-    "dim_embedding" => 32,
+    "dim_embedding" => 8,
     "max_sentence_length" => 30,
 )
 nlabels = hyperparameters["nlabels"]
 max_sentence_length = hyperparameters["max_sentence_length"]
 num_epochs = 10
+
+mkdir(output_dir)
 
 ## Data
 filepath = joinpath(data_dir, filename)
@@ -43,14 +48,14 @@ println("")
 ## Tokenizers
 sentence_splitter = RuleBasedSentenceSplitter()
 
-vocab_dir = joinpath(@__DIR__, "..", "vocab", "bpe")
-path_rules = joinpath(vocab_dir, "amazon_reviews_train_en_rules.txt")
-path_vocab = joinpath(vocab_dir, "amazon_reviews_train_en_vocab.txt")
+path_rules = joinpath(vocab_directory, "amazon_reviews_train_en_rules.txt")
+path_vocab = joinpath(vocab_directory, "amazon_reviews_train_en_vocab.txt")
 tokenizer = load_bpe(path_rules, startsym="⋅")
 
 vocab = load_vocab(path_vocab)
 indexer = IndexTokenizer(vocab, "[UNK]")
 
+println("Tokenizers:")
 display(sentence_splitter)
 display(tokenizer)
 display(indexer)
@@ -81,6 +86,7 @@ tokens = Vector{Vector{String}}[]
     sentences = sentence_splitter(doc)
     tokens_doc = map(s->preprocess(s, tokenizer; max_length=max_sentence_length), sentences)
     pad!(tokens_doc[1], tokenizer.unksym, max_sentence_length) # hack to ensure all indices have common length
+    # later the indexer will pad the other sentences to match the first one
     push!(tokens, tokens_doc)
 end
 @time indices = map(indexer, tokens) 
@@ -100,7 +106,9 @@ base_model = TransformersLite.TransformerClassifier(
     Embed(dim_embedding, length(indexer)), 
     PositionEncoding(dim_embedding), 
     Dropout(pdrop),
-    TransformerEncoderBlock[TransformerEncoderBlock(4, dim_embedding, dim_embedding * 4; pdrop=pdrop)],
+    TransformerBlock[
+        TransformerBlock(4, dim_embedding, dim_embedding * 4; pdrop=pdrop)
+    ],
     Dense(dim_embedding, 1), 
     FlattenLayer(),
     Dense(max_sentence_length, nlabels)
@@ -127,16 +135,14 @@ train_data_loader = DataLoader(train_data; batchsize=batch_size, shuffle=true)
 val_data_loader = DataLoader(val_data; batchsize=batch_size, shuffle=false)
 
 println("Calculating initial metrics")
-@time metrics = batched_metrics(model, val_data_loader, loss, accuracy)
-@printf "val_acc=%.4f%%; " metrics.accuracy * 100
+metrics = batched_metrics(model, val_data_loader, loss, accuracy)
+@printf "val_acc=%.4f%% ; " metrics.accuracy * 100
 @printf "val_loss=%.4f \n" metrics.loss
 println("")
 
-vocab_dir = normpath(joinpath(@__DIR__, "outputs", Dates.format(now(), "yyyymmdd_HHMM")))
-mkdir(vocab_dir)
-output_path = joinpath(vocab_dir, "model.bson")
-history_path = joinpath(vocab_dir, "history.json")
-hyperparameter_path = joinpath(vocab_dir, "hyperparameters.json")
+output_path = joinpath(output_dir, "model.bson")
+history_path = joinpath(output_dir, "history.json")
+hyperparameter_path = joinpath(output_dir, "hyperparameters.json")
 
 open(hyperparameter_path, "w") do f
     JSON.print(f, hyperparameters)
@@ -156,8 +162,9 @@ println("done training")
 @printf "time taken: %.2fs\n" end_time/1e9
 
 ## Save 
-
+model = cpu(model)
 if hasproperty(tokenizer, :cache)
+    # empty cache
     tokenizer = similar(tokenizer)
 end
 BSON.bson(

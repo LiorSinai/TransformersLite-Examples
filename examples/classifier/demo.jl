@@ -1,16 +1,13 @@
 using Flux
-using CUDA, cuDNN
 using Flux: DataLoader
-using DataFrames
+using CUDA, cuDNN
 using Arrow
 using BSON, JSON
+using DataFrames
 using Dates
-using DataStructures
 using Printf
-using ProgressMeter
 using Random
 using StatsBase
-using Unicode
 
 #using TokenizersLite # Uncomment if using bpe or affixer tokenizers below
 using TransformersLite
@@ -20,27 +17,31 @@ include("../../common/training.jl")
 ## Config
 fingerprint = "724e94f4b0c6c405ce7e476a6c5ef4f87db30799ad49f765094cf9770e0f7609"
 data_dir = normpath(joinpath(@__DIR__, "..", "..", "datasets\\amazon_reviews_multi\\en\\1.0.0", fingerprint))
+output_dir = normpath(joinpath(@__DIR__, "outputs", Dates.format(now(), "yyyymmdd_HHMM")))
 vocab_directory = "vocab"
 filename = "amazon_reviews_multi-train.arrow"
 to_device = gpu # gpu or cpu
-target_column = :stars
 document_column = :review_body
-max_sentence_length = 50
+target_column = :stars
 
 hyperparameters = Dict(
     "seed" => 2718,
     "tokenizer" => "none", # options: none bpe affixes
-    "nlabels" => 5,
+    "nlabels" => 5, # 1 (score) or 5 (stars)
     "pdrop" => 0.1,
-    "dim_embedding" => 32
+    "dim_embedding" => 8,
+    "max_sentence_length" => 50,
 )
 nlabels = hyperparameters["nlabels"]
-n_epochs = 10
+max_sentence_length = hyperparameters["max_sentence_length"]
+num_epochs = 10
+
+mkdir(output_dir)
 
 ## Data
 filepath = joinpath(data_dir, filename)
 df = DataFrame(Arrow.Table(filepath))
-display(first(df, 20))
+display(first(df, 10))
 println("")
 
 ## Tokenizers
@@ -55,6 +56,8 @@ elseif hyperparameters["tokenizer"] == "affixes"
 elseif hyperparameters["tokenizer"] == "none"
     path_vocab = joinpath(vocab_directory, "amazon_reviews_train_en.txt")
     tokenizer = identity
+else 
+    throw("Invalid tokenizer: $(hyperparameters["tokenizer"])")
 end
 
 #vocab = load_vocab(joinpath(@__DIR__, path_vocab))
@@ -62,8 +65,8 @@ corpus = String.(df[!, :review_body])
 vocab = select_vocabulary(corpus; min_document_frequency=30)
 indexer = IndexTokenizer(vocab, "[UNK]")
 
+println("Tokenizers:")
 display(tokenizer)
-println("")
 display(indexer)
 println("")
 
@@ -101,8 +104,8 @@ model = TransformersLite.TransformerClassifier(
     Embed(dim_embedding, length(indexer)), 
     PositionEncoding(dim_embedding), 
     Dropout(pdrop),
-    TransformerEncoderBlock[
-        TransformerEncoderBlock(4, dim_embedding, dim_embedding * 4; pdrop=pdrop)
+    TransformerBlock[
+        TransformerBlock(4, dim_embedding, dim_embedding * 4; pdrop=pdrop)
     ],
     Dense(dim_embedding, 1), 
     FlattenLayer(),
@@ -129,13 +132,11 @@ train_data_loader = DataLoader(train_data |> to_device; batchsize=batch_size, sh
 val_data_loader = DataLoader(val_data |> to_device; batchsize=batch_size, shuffle=false)
 
 println("Calculating initial metrics")
-@time metrics = batched_metrics(model, val_data_loader, accuracy, loss)
+metrics = batched_metrics(model, val_data_loader, loss, accuracy)
 @printf "val_acc=%.4f%% ; " metrics.accuracy * 100
 @printf "val_loss=%.4f \n" metrics.loss
 println("")
 
-output_dir = normpath(joinpath(@__DIR__, "outputs", Dates.format(now(), "yyyymmdd_HHMM")))
-mkdir(output_dir)
 output_path = joinpath(output_dir, "model.bson")
 history_path = joinpath(output_dir, "history.json")
 hyperparameter_path = joinpath(output_dir, "hyperparameters.json")
@@ -151,7 +152,8 @@ opt_state = Flux.setup(Adam(), model)
 start_time = time_ns()
 history = train!(
     loss, model, train_data_loader, opt_state, val_data_loader
-    ; num_epochs=n_epochs)
+    ; num_epochs=num_epochs
+    )
 end_time = time_ns() - start_time
 println("done training")
 @printf "time taken: %.2fs\n" end_time/1e9
@@ -176,4 +178,3 @@ open(history_path,"w") do f
   JSON.print(f, history)
 end
 println("saved history to $(history_path).")
-println("")

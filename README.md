@@ -46,8 +46,8 @@ python data/AmazonReviews/download_dataset.py
 ```
 
 Create a transformer and train it on the data:
-```bash
-mkdir outputs
+```
+mkdir examples\classifier\outputs
 julia --project="." --threads auto examples/classifier/demo.jl
 ```
 
@@ -61,11 +61,14 @@ jupyter notebook
 The task was to predict the star rating on a 5 star scale given a review. 
 A simpler task was also investigated to predict a positive or negative sentiment with 1-2 stars labelled negative, 4-5 stars labelled positive and 3 stars removed. Only the English subset of the dataset was used with 200,000 training samples and 5,000 test samples.
 
-It should be noted that this task can be solved with simpler models. A TFIDF model paired with logistic regression with approximately 10,000 weights
-achieved similar accuracy to these models with more than 240,000 weights.
+The accuracy achieved on the test data was:
+- 86.9% for the binary task for a model with ~57,000 parameters.
+- 88.5% for the binary task for a model which which scores each sentence individually and then aggregates their results with a parabolic weighted average. The model had ~60,000 parameters.
+- 49.0% for the 5 star classification task for a model with ~57,000 parameters.
 
-The accuracy achieved was 87.5% for the binary task and 49.9% for the 5 star classification task.
-For the binary case, a model which scores each sentence individually and then aggregates their results with a parabolic weighted average achieved an accuracy of 89.3%.
+It should be noted that this task can be solved with simpler models. 
+A TFIDF model paired with logistic regression with approximately 10,000 weights
+achieved similar accuracy to these models.
 
 ### Binary task
 <img src="images/amazon_reviews/confusion_matrix_regression.png"
