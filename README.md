@@ -35,6 +35,52 @@ Optional packages:
 - TokenisersLite: [https://github.com/LiorSinai/TokenizersLite](https://github.com/LiorSinai/TokenizersLite).
 - BytePairEncoding: [https://github.com/chengchingwen/BytePairEncoding.jl](https://github.com/chengchingwen/BytePairEncoding.jl).
 
+## Generator
+
+Train a transformer generator, which can be used for a Generative Pre-trained Transformer (GPT).
+
+The text corpus used here is Shakespeare's plays from [Project Gutenberg](https://www.gutenberg.org/cache/epub/100/pg100.txt).
+
+See [prepare_shakespeare.jl](data/Shakespeare/prepare_shakespeare.jl) for an automated preparation of the data.
+
+Create a transformer and train it on the data:
+```
+mkdir examples\GPT\outputs
+julia --project="." --threads auto examples/GPT/train_gpt.jl
+```
+
+Based on Andrej Karpthay's [Neural Networks: Zero to Hero](https://karpathy.ai/zero-to-hero.html) course.
+
+### Results
+
+Example text after training a 42,400 parameter model:
+
+<blockquote>
+<pre>
+CLATIO.
+No, Goe, him buchieds is, hand I was,
+To queer thee that of till moxselat by twish are.
+
+BENET.
+Are warrain Astier, the Cowlles,
+bourse and nope, Merfore myen our to of them coun-mothared man,
+Here is
+Mafter my thath and herop, and in in have low’t so, veriege a the can eeset thy
+inscestle marriom.
+
+ADY.
+Thus him stome
+To so an streeward. Here cas, which id renuderser what thou bee of as the hightseleh-to.
+
+CHAESS.
+With he mand, th’ fouthos. I purcot Lay,
+You.
+
+GATHENT.
+Who, to hath fres
+</pre>
+</blockquote>
+
 ## Classifier
 ### Train
 
@@ -93,50 +139,6 @@ Again this is hypothesized  to be partially because of inconsistencies in the un
 
 Seeing in another view as a bar chart, for each star the most likely prediction is the star itself.
 However the distributions do have a spread and have significant overlaps of confusion.
-
-### Generator
-
-Train a transformer generator, which can be used for a Generative Pre-trained Transformer (GPT).
-
-The text corpus used here is Shakespeare's plays from [Project Gutenberg](https://www.gutenberg.org/cache/epub/100/pg100.txt).
-
-See [prepare_shakespeare.jl](data/Shakespeare/prepare_shakespeare.jl) for an automated preparation of the data.
-
-Create a transformer and train it on the data:
-```
-mkdir examples\GPT\outputs
-julia --project="." --threads auto examples/GPT/train_gpt.jl
-```
-
-Based on Andrej Karpthay's [Neural Networks: Zero to Hero](https://karpathy.ai/zero-to-hero.html) course.
-
-### Results
-
-Example text after training a 42,400 parameter model:
-
-<blockquote>
-CLATIO.
-No, Goe, him buchieds is, hand I was,
-To queer thee that of till moxselat by twish are.
-
-BENET.
-Are warrain Astier, the Cowlles,
-bourse and nope, Merfore myen our to of them coun-mothared man,
-Here is
-Mafter my thath and herop, and in in have low’t so, veriege a the can eeset thy
-inscestle marriom.
-
-ADY.
-Thus him stome
-To so an streeward. Here cas, which id renuderser what thou bee of as the hightseleh-to.
-
-CHAESS.
-With he mand, th’ fouthos. I purcot Lay,
-You.
-
-GATHENT.
-Who, to hath fres
-</blockquote>
 
 ## Notebooks
 
