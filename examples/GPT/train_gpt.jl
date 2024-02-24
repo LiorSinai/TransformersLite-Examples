@@ -59,6 +59,7 @@ println(length(characters), ": ", replace(join(characters), '\n'=>"\\n"))
 
 push!(characters, 'Ø')
 indexer = IndexTokenizer(characters, 'Ø')
+println(indexer)
 
 println(indexer(collect("hii there")))
 println(join(decode(indexer, indexer(collect("hii there")))))
@@ -101,11 +102,12 @@ model = TransformersLite.TransformerGenerator(
     PositionEncoding(dim_embedding, context_size), 
     Dropout(0.1),
     TransformerBlock[
-        TransformerBlock(4, dim_embedding, dim_embedding * 4; pdrop=pdrop, mask=copy(mask)),
-        TransformerBlock(4, dim_embedding, dim_embedding * 4; pdrop=pdrop, mask=copy(mask)),
-        TransformerBlock(4, dim_embedding, dim_embedding * 4; pdrop=pdrop, mask=copy(mask)),
+        TransformerBlock(4, dim_embedding, dim_embedding * 4; pdrop=pdrop),
+        TransformerBlock(4, dim_embedding, dim_embedding * 4; pdrop=pdrop),
+        TransformerBlock(4, dim_embedding, dim_embedding * 4; pdrop=pdrop),
     ],
     Dense(dim_embedding, vocab_size),
+    copy(mask)
     )
 display(model)
 println("")
@@ -133,8 +135,8 @@ accuracy = full_accuracy
 ## Training
 
 println("Calculating initial metrics")
-@printf "expected accuracy: %.5f; " 1/vocab_size * 100
-@printf "expected loss: %.5f\n" -log(1/vocab_size) 
+@printf "expected accuracy: %.4f%%; " 1/vocab_size * 100
+@printf "expected loss: %.4f\n" -log(1/vocab_size) 
 metrics = batched_metrics(model, val_generator, loss, accuracy)
 @printf "val_acc=%.4f%% ; " metrics.full_accuracy * 100
 @printf "val_loss=%.4f \n" metrics.full_loss
