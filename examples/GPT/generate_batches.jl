@@ -1,5 +1,4 @@
 using Random
-using CUDA
 import Base: iterate, length, IteratorEltype
 
 function get_shifted_batch(rng::AbstractRNG, data::AbstractVector, context_size::Int, batch_size::Int)
