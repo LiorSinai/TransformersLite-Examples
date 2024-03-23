@@ -11,7 +11,7 @@ This downloads an array of JSON objects.
 The HuggingFace interface will convert this to the more efficient Arrow format.
 """
 
-dataset_name = "amazon_reviews_multi" # WARNING: this dataset is no longer publically available
+dataset_name = "amazon_reviews_multi" # WARNING: this dataset is no longer publicly available
 subset = "en"
 
 # default cache directories
