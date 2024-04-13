@@ -6,8 +6,7 @@ using Dates
 using StatsBase
 
 using TransformersLite
-using TransformersLite: decode
-using TransformersLite: make_causal_mask
+using TransformersLite: decode, make_causal_mask
 include("../../common/training.jl")
 include("loss.jl")
 include("generate_batches.jl")
@@ -58,6 +57,7 @@ vocab_size = length(characters)
 println(length(characters), ": ", replace(join(characters), '\n'=>"\\n"))
 
 push!(characters, 'Ø')
+vocab_size += 1
 indexer = IndexTokenizer(characters, 'Ø')
 println(indexer)
 
@@ -98,9 +98,9 @@ pdrop = hyperparameters["pdrop"]
 mask = make_causal_mask(ones(context_size, context_size))
 
 model = TransformersLite.TransformerGenerator(
-    Embed(dim_embedding, vocab_size),
-    PositionEncoding(dim_embedding, context_size), 
-    Dropout(0.1),
+    Embedding(vocab_size => dim_embedding),
+    Embedding(context_size => dim_embedding), 
+    Dropout(pdrop),
     TransformerBlock[
         TransformerBlock(4, dim_embedding, dim_embedding * 4; pdrop=pdrop),
         TransformerBlock(4, dim_embedding, dim_embedding * 4; pdrop=pdrop),
