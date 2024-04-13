@@ -102,8 +102,9 @@ println("")
 dim_embedding = hyperparameters["dim_embedding"]
 pdrop = hyperparameters["pdrop"]
 
+vocab_size = length(indexer)
 base_model = TransformersLite.TransformerClassifier(
-    Embed(dim_embedding, length(indexer)), 
+    Embedding(vocab_size => dim_embedding)
     PositionEncoding(dim_embedding), 
     Dropout(pdrop),
     TransformerBlock[
