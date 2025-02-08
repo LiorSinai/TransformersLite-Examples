@@ -6,7 +6,7 @@ and is paired with this [blog post](https://liorsinai.github.io/coding/2022/05/1
 
 ## Setup
 
-Download the Transformers Github repository (it is not registered). Then install it via the Julia REPL:
+Download the Transformers (v0.5) Github repository (it is not registered) . Then install it via the Julia REPL:
 ```Julia-repl
 julia> ] # enter package mode
 (@v1.x) pkg> dev path\\to\\TransformersLite.jl
@@ -25,15 +25,15 @@ Dependencies can also be installed manually in the main Julia environment.
 The cuDNN library needs to installed separately for CUDA GPU functionality.
 It is added as an artifact via the cuDNN package.
 
+Optional packages:
+- TokenisersLite: [https://github.com/LiorSinai/TokenizersLite](https://github.com/LiorSinai/TokenizersLite).
+- BytePairEncoding: [https://github.com/chengchingwen/BytePairEncoding.jl](https://github.com/chengchingwen/BytePairEncoding.jl).
+
 ### Non-Julia Dependencies
 
 Other than Julia this requires Python for:
 - HuggingFace datasets package. 
 - Jupyter notebooks.
-
-Optional packages:
-- TokenisersLite: [https://github.com/LiorSinai/TokenizersLite](https://github.com/LiorSinai/TokenizersLite).
-- BytePairEncoding: [https://github.com/chengchingwen/BytePairEncoding.jl](https://github.com/chengchingwen/BytePairEncoding.jl).
 
 ## Generator
 

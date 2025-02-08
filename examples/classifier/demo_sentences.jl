@@ -104,7 +104,7 @@ pdrop = hyperparameters["pdrop"]
 
 vocab_size = length(indexer)
 base_model = TransformersLite.TransformerClassifier(
-    Embedding(vocab_size => dim_embedding)
+    Embedding(vocab_size => dim_embedding),
     PositionEncoding(dim_embedding), 
     Dropout(pdrop),
     TransformerBlock[
@@ -114,7 +114,6 @@ base_model = TransformersLite.TransformerClassifier(
     FlattenLayer(),
     Dense(max_sentence_length, nlabels)
     )
-display(base_model)
 
 model = SentenceClassifier(
     base_model,
@@ -125,7 +124,7 @@ display(model)
 println("")
 
 hyperparameters["model"] = "$(typeof(model).name.wrapper)-$(typeof(model.base_model).name.wrapper)"
-hyperparameters["trainable parameters"] = sum(length, Flux.params(model));
+hyperparameters["trainable parameters"] = sum(length, Flux.trainables(model));
 
 loss(ŷ::AbstractVector, y::AbstractVector) = Flux.binarycrossentropy(ŷ, y)
 accuracy(ŷ::AbstractVector, y::AbstractVector) = mean((ŷ .> 0.5) .== y)

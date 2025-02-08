@@ -117,7 +117,7 @@ println("")
 model = to_device(model) 
 
 hyperparameters["model"] = "$(typeof(model).name.wrapper)"
-hyperparameters["trainable parameters"] = sum(length, Flux.params(model));
+hyperparameters["trainable parameters"] = sum(length, Flux.trainables(model));
 
 if nlabels == 1
     loss(ŷ::AbstractMatrix, y::AbstractMatrix) = Flux.logitbinarycrossentropy(ŷ, y)

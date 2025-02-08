@@ -4,7 +4,7 @@ struct SentenceClassifier
     aggregate
 end
 
-Flux.@functor SentenceClassifier
+Flux.@layer SentenceClassifier
 
 function Base.show(io::IO, sc::SentenceClassifier)
     print(io, "SentenceClassifer(")
