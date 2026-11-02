@@ -12,7 +12,7 @@ include("loss.jl")
 include("generate_batches.jl")
 
 ## Config
-frac_validation = 0.05
+frac_validation = 0.05 # 95% of the text is used for training
 context_size = 32
 batch_size = 32
 # There are 4.96 million characters, of which 95% are used for training
@@ -29,7 +29,8 @@ to_device = gpu # gpu or cpu
 hyperparameters = Dict{String, Any}(
     "seed" => 2718,
     "pdrop" => 0.1,
-    "dim_embedding" => 32,
+    "nhead" => 4,
+    "dim_embedding" => 16 * 4, # each head gets dim_embedding ÷ nhead
     "context_size" => context_size,
 )
 
@@ -54,7 +55,7 @@ println("")
 println("Preparing tokens")
 characters = sort(collect(Set(text)))
 vocab_size = length(characters)
-println(length(characters), ": ", replace(join(characters), '\n'=>"\\n"))
+println(length(characters), ": ", escape_string(join(characters)))
 
 push!(characters, 'Ø')
 vocab_size += 1
@@ -94,7 +95,10 @@ println("batch sizes: ", size.(first(batch_generator)))
 
 ## Model
 dim_embedding = hyperparameters["dim_embedding"]
+nhead = hyperparameters["nhead"]
 pdrop = hyperparameters["pdrop"]
+dim_head = dim_embedding ÷ nhead
+
 mask = make_causal_mask(ones(context_size, context_size))
 
 model = TransformersLite.TransformerGenerator(
@@ -102,9 +106,9 @@ model = TransformersLite.TransformerGenerator(
     Embedding(context_size => dim_embedding), 
     Dropout(pdrop),
     TransformerBlock[
-        TransformerBlock(4, dim_embedding, dim_embedding * 4; pdrop=pdrop),
-        TransformerBlock(4, dim_embedding, dim_embedding * 4; pdrop=pdrop),
-        TransformerBlock(4, dim_embedding, dim_embedding * 4; pdrop=pdrop),
+        TransformerBlock(nhead, dim_embedding, dim_embedding * 4; pdrop=pdrop),
+        TransformerBlock(nhead, dim_embedding, dim_embedding * 4; pdrop=pdrop),
+        TransformerBlock(nhead, dim_embedding, dim_embedding * 4; pdrop=pdrop),
     ],
     Dense(dim_embedding, vocab_size),
     copy(mask)
@@ -130,17 +134,20 @@ println(join(decoded_context))
 println("")
 
 loss = full_loss
-accuracy = full_accuracy
+metrics = (; full_loss, full_accuracy)
 
 ## Training
 
 println("Calculating initial metrics")
 @printf "expected accuracy: %.4f%%; " 1/vocab_size * 100
-@printf "expected loss: %.4f\n" -log(1/vocab_size) 
-metrics = batched_metrics(model, val_generator, loss, accuracy)
-@printf "val_acc=%.4f%% ; " metrics.full_accuracy * 100
-@printf "val_loss=%.4f \n" metrics.full_loss
+@printf "expected loss: %.4f\n" -log(1/vocab_size)
+initial_metrics = batched_metrics(model, val_generator, metrics)
+@printf "val_acc=%.4f%% ; " initial_metrics.full_accuracy * 100
+@printf "val_loss=%.4f \n" initial_metrics.full_loss
 println("")
+history = Dict(
+    "val_" * String(name) => [value] for (name, value) in pairs(initial_metrics)
+)
 
 output_path = joinpath(output_dir, "model.bson")
 history_path = joinpath(output_dir, "history.json")
@@ -156,11 +163,13 @@ println("Training ...")
 opt_state = Flux.setup(Adam(), model)
 start_time = time_ns()
 history = train!(
-    loss, model, batch_generator, opt_state, val_generator
-    ; num_epochs=n_epochs)
+    loss, model, batch_generator, opt_state, val_generator,
+    history
+    ; num_epochs=n_epochs, metrics=metrics)
 end_time = time_ns() - start_time
 println("done training")
-@printf "time taken: %.2fs\n" end_time/1e9
+s = end_time ÷ 1_000_000_000 # nanoseconds → seconds
+@printf "time taken: %02d:%02d:%02d\n" s ÷ 3600 (s % 3600) ÷ 60 s % 60
 
 println("after training generation:")
 context = reshape([1], 1, 1)

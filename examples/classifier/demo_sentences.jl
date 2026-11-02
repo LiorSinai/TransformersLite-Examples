@@ -135,9 +135,10 @@ train_data_loader = DataLoader(train_data; batchsize=batch_size, shuffle=true)
 val_data_loader = DataLoader(val_data; batchsize=batch_size, shuffle=false)
 
 println("Calculating initial metrics")
-metrics = batched_metrics(model, val_data_loader, loss, accuracy)
-@printf "val_acc=%.4f%% ; " metrics.accuracy * 100
-@printf "val_loss=%.4f \n" metrics.loss
+metrics = (; loss, accuracy)
+initial_metrics = batched_metrics(model, val_data_loader, metrics)
+@printf "val_acc=%.4f%% ; " initial_metrics.accuracy * 100
+@printf "val_loss=%.4f \n" initial_metrics.loss
 println("")
 
 output_path = joinpath(output_dir, "model.bson")
@@ -155,11 +156,12 @@ opt_state = Flux.setup(Adam(), model)
 start_time = time_ns()
 history = train!(
     loss, model, train_data_loader, opt_state, val_data_loader
-    ; num_epochs=num_epochs
+    ; num_epochs=num_epochs, metrics=metrics
     )
 end_time = time_ns() - start_time
 println("done training")
-@printf "time taken: %.2fs\n" end_time/1e9
+s = end_time ÷ 1_000_000_000 # nanoseconds → seconds
+@printf "time taken: %02d:%02d:%02d\n" s ÷ 3600 (s % 3600) ÷ 60 s % 60
 
 ## Save 
 model = cpu(model)
